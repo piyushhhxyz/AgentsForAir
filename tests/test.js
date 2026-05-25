@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const AdmZip = require('adm-zip');
 const { createTestEnv, createTestRunner } = require('./helpers');
 
 const { tmpDir, cliPath, cleanup } = createTestEnv('test');
@@ -81,6 +82,15 @@ async function runAllTests() {
     const manifest = { name: 'test', version: '1.0.0' };
     const result = validateManifest(manifest);
     assert(!result.valid);
+    assert(result.errors.includes('Missing required section: agent'));
+  });
+
+  test('reports all missing required manifest fields', () => {
+    const result = validateManifest({});
+    assert(!result.valid, 'Empty manifest should be invalid');
+    assertEqual(result.errors.length, 3);
+    assert(result.errors.includes('Missing required field: name'));
+    assert(result.errors.includes('Missing required field: version'));
     assert(result.errors.includes('Missing required section: agent'));
   });
 
@@ -219,6 +229,22 @@ async function runAllTests() {
       threw = true;
     }
     assert(threw, 'Should throw on invalid .agent file');
+  });
+
+  test('inspectAgent throws when agent.yaml is missing', () => {
+    const missingManifestFile = path.join(tmpDir, 'missing-manifest.agent');
+    const zip = new AdmZip();
+    zip.addFile('README.md', Buffer.from('# Missing manifest\n'));
+    zip.writeZip(missingManifestFile);
+
+    let actualErrorMessage = '';
+    try {
+      inspectAgent(missingManifestFile);
+    } catch (err) {
+      actualErrorMessage = err.message;
+    }
+
+    assertEqual(actualErrorMessage, 'Invalid .agent file: no agent.yaml found');
   });
 
   // ─── CLI integration tests ───
