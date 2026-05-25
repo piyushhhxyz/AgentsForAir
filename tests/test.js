@@ -111,6 +111,11 @@ async function runAllTests() {
     assert(!result.includes('..'), 'Should not contain ".."');
   });
 
+  test('keeps safe manifest field characters while removing separators', () => {
+    const result = sanitizeManifestField('team-name_01/agent.name');
+    assertEqual(result, 'team-name_01agent.name');
+  });
+
   test('returns _unknown for empty/null input', () => {
     assertEqual(sanitizeManifestField(''), '_unknown');
     assertEqual(sanitizeManifestField(null), '_unknown');
